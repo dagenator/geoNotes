@@ -7,7 +7,10 @@ import com.zotreex.sample_project.domain.data.models.GeoNote
 import com.zotreex.sample_project.domain.data.models.Geocode
 import com.zotreex.sample_project.domain.data.models.Resource
 import com.zotreex.sample_project.domain.repository.YandexServiceRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class MainViewModel @Inject constructor(
@@ -28,7 +31,9 @@ class MainViewModel @Inject constructor(
 
     fun getNotes() {
         viewModelScope.launch {
-            geoNotes.value = yandexServiceRepository.getAllNotes()
+            withContext(Dispatchers.IO){
+                geoNotes.postValue( yandexServiceRepository.getAllNotes())
+            }
         }
     }
 
