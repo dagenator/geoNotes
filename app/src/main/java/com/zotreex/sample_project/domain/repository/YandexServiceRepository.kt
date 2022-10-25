@@ -8,6 +8,7 @@ import com.zotreex.sample_project.domain.data.models.Geocode
 import com.zotreex.sample_project.domain.data.models.Resource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -36,10 +37,24 @@ class YandexServiceRepository @Inject constructor(
 
     }
 
+    suspend fun updateNewNote(address: String, lat: Double, long: Double, note: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val geoNote = GeoNote(address, lat, long, note)
+            geoNotesDatabase.getNoteDAO().update(geoNote)
+        }
+
+    }
+
     suspend fun deleteNote(address: String) {
         CoroutineScope(Dispatchers.IO).launch {
             geoNotesDatabase.getNoteDAO().delete(address)
         }
+    }
+
+    suspend fun getNoteByAddress(address: String):GeoNote? {
+        return CoroutineScope(Dispatchers.IO).async {
+            return@async geoNotesDatabase.getNoteDAO().getByAddress(address)
+        }.await()
     }
 
     suspend fun getAllNotes():List<GeoNote> {

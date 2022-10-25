@@ -17,6 +17,7 @@ class MainViewModel @Inject constructor(
     var geocodeLiveData = MutableLiveData<Resource<Geocode>>()
     var geoNotes = MutableLiveData<List<GeoNote>>()
 
+
     fun getGeocode(lat: Double, lng: Double) {
         viewModelScope.launch {
             yandexServiceRepository.getGeocode(lat, lng).collect {
@@ -37,10 +38,18 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun updateNote(address: String, lat: Double, long: Double, note: String){
+        viewModelScope.launch {
+            yandexServiceRepository.updateNewNote(address, lat, long, note)
+        }
+    }
+
     fun deleteNote(address: String){
         viewModelScope.launch {
             yandexServiceRepository.deleteNote(address)
         }
     }
+
+
 
 }

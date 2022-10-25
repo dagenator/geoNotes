@@ -36,7 +36,7 @@ class NotificationController(private val context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 "Is Bacon Id",
-                "is Beacon background", NotificationManager.IMPORTANCE_LOW
+                "is Beacon background", NotificationManager.IMPORTANCE_HIGH
             )
 
             channel.description = "Work in background"

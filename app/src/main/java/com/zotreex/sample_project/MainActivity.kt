@@ -7,18 +7,19 @@ import android.graphics.Color
 import android.graphics.PointF
 import android.location.Location
 import android.os.Bundle
-import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Observer
-import com.google.android.gms.location.*
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.layers.ObjectEvent
@@ -30,11 +31,11 @@ import com.yandex.mapkit.user_location.UserLocationObjectListener
 import com.yandex.mapkit.user_location.UserLocationView
 import com.yandex.runtime.image.ImageProvider
 import com.zotreex.sample_project.di.MainViewModelFactory
+import com.zotreex.sample_project.domain.data.models.GeoNote
 import com.zotreex.sample_project.domain.data.models.Geocode
 import com.zotreex.sample_project.domain.data.models.Resource
 import com.zotreex.sample_project.domain.data.models.Status
 import com.zotreex.sample_project.ui.MainViewModel
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 
@@ -66,7 +67,6 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
     val permissionsUtils = PermissionsUtils()
 
 
-
     private var currentLocation: Location? = null
 
     private lateinit var mapView: MapView
@@ -89,7 +89,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
 
         val intent = Intent(this, NoteSevice::class.java) // Build the intent for the service
         applicationContext.startForegroundService(intent)
-
+        viewModel.getNotes()
     }
 
     private fun subscrideLocationUpdate() {
@@ -230,20 +230,43 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
 
 
     fun drawNote(geocode: Geocode) {
+        viewModel.getNotes()
+        val notes = viewModel.geoNotes.value
         val note = findViewById<ConstraintLayout>(R.id.notes)
         note.visibility = View.VISIBLE
         val noteTitle = findViewById<TextView>(R.id.notes_name)
         val name =
             "${geocode.response.geoObjectCollection.featureMember[0].geoObject.name}: ${geocode.response.geoObjectCollection.featureMember[0].geoObject.metaDataProperty.geocoderMetaData.text} "
         noteTitle.text = name
+
         val noteInput = findViewById<EditText>(R.id.notes_edit_text)
+        val geoName =
+            geocode.response.geoObjectCollection.featureMember[0].geoObject.metaDataProperty.geocoderMetaData.text
+
+        var pastNote: GeoNote? = null
+        notes?.map { x ->
+            if(x.address == geoName){
+                noteInput.setText(x.note,TextView.BufferType.EDITABLE)
+                pastNote = x
+            }
+        }
+
         findViewById<ImageButton>(R.id.notes_save_button).setOnClickListener {
-            if(noteInput.text.toString().length > 3){
-                val geoName = geocode.response.geoObjectCollection.featureMember[0].geoObject.metaDataProperty.geocoderMetaData.text
-                val pos = geocode.response.geoObjectCollection.featureMember[0].geoObject.point.pos.split(" ").map { x-> x.toDouble() }
-                viewModel.insertNote(geoName, pos[1], pos[0], noteInput.text.toString())
+            if (noteInput.text.toString().length > 3) {
+                val pos =
+                    geocode.response.geoObjectCollection.featureMember[0].geoObject.point.pos.split(
+                        " "
+                    ).map { x -> x.toDouble() }
+
+                if(pastNote ==null){
+                    viewModel.insertNote(geoName, pos[1], pos[0], noteInput.text.toString())
+                }
+                pastNote?.let {
+                    viewModel.updateNote(geoName, it.latitude, it.longtitude, noteInput.text.toString())
+                }
             }
             note.visibility = View.GONE
+            Toast.makeText(applicationContext, "saved", Toast.LENGTH_SHORT).show()
         }
     }
 
