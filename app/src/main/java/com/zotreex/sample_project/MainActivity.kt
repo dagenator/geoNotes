@@ -85,29 +85,23 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
         setMap()
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        permissionsUtils.askFineLocation({ subscrideLocationUpdate() }, this)
+        permissionsUtils.askFineLocation({ subscribeLocationUpdate() }, this)
 
         val intent = Intent(this, NoteSevice::class.java) // Build the intent for the service
         applicationContext.startForegroundService(intent)
         viewModel.getNotes()
     }
 
-    private fun subscrideLocationUpdate() {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
+    private fun subscribeLocationUpdate() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED
+            && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED
         ) {
-
             val task = fusedLocationClient.lastLocation
             task.addOnCompleteListener {
                 doLocationWork(it.result.latitude, it.result.longitude)
             }
-
-
         } else {
             //permissionsUtils.requestLocationPermission(1, {subscrideLocationUpdate()}, this)
         }
@@ -127,10 +121,10 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
     }
 
     override fun onObjectAdded(userLocationView: UserLocationView) {
-        userLocationLayer!!.setAnchor(
-            PointF((mapView.width * 0.5).toFloat(), (mapView.height * 0.5).toFloat()),
-            PointF((mapView.width * 0.5).toFloat(), (mapView.height * 0.83).toFloat())
-        )
+//        userLocationLayer!!.setAnchor(
+//            PointF((mapView.width * 0.5).toFloat(), (mapView.height * 0.5).toFloat()),
+//            PointF((mapView.width * 0.5).toFloat(), (mapView.height * 0.83).toFloat())
+//        )
         userLocationView.arrow.setIcon(
             ImageProvider.fromResource(
                 this, android.R.drawable.arrow_down_float
@@ -148,7 +142,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
         pinIcon.setIcon(
             "pin",
             ImageProvider.fromResource(this, android.R.drawable.ic_menu_search),
-            IconStyle().setAnchor(PointF(0.5f, 0.5f))
+            IconStyle().setAnchor(PointF(0f, 0f))
                 .setRotationType(RotationType.ROTATE)
                 .setZIndex(1f)
                 .setScale(0.5f)
@@ -156,9 +150,9 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
         userLocationView.accuracyCircle.fillColor = Color.BLUE and -0x66000001
     }
 
-    fun doLocationWork(latitide: Double, longtitude: Double) {
-        Log.i("locationArrow", "doLocationWork: ")
-        setCameraPosition(latitide, longtitude)
+    private fun doLocationWork(latitude: Double, longitude: Double) {
+        Log.i("locationArrow", "doLocationWork: ($latitude,$longitude)")
+        setCameraPosition(latitude, longitude)
     }
 
     fun setCameraPosition(lat: Double, long: Double) {
@@ -200,21 +194,21 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
                 if ((grantResults.isNotEmpty() &&
                             grantResults[0] == PackageManager.PERMISSION_GRANTED)
                 ) {
-                    permissionsUtils.askCoarseLocation({ subscrideLocationUpdate() }, this)
+                    permissionsUtils.askCoarseLocation({ subscribeLocationUpdate() }, this)
                 }
             }
             PERMISSIONS_REQUEST_COARSE_LOCATION -> {
                 if ((grantResults.isNotEmpty() &&
                             grantResults[0] == PackageManager.PERMISSION_GRANTED)
                 ) {
-                    permissionsUtils.askBackground({ subscrideLocationUpdate() }, this)
+                    permissionsUtils.askBackground({ subscribeLocationUpdate() }, this)
                 }
             }
             PERMISSIONS_REQUEST_ACCESS_BACKGROUND_LOCATION -> {
                 if ((grantResults.isNotEmpty() &&
                             grantResults[0] == PackageManager.PERMISSION_GRANTED)
                 ) {
-                    subscrideLocationUpdate()
+                    subscribeLocationUpdate()
                 }
             }
 
@@ -244,11 +238,13 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
             geocode.response.geoObjectCollection.featureMember[0].geoObject.metaDataProperty.geocoderMetaData.text
 
         var pastNote: GeoNote? = null
-        notes?.map { x ->
-            if(x.address == geoName){
-                noteInput.setText(x.note,TextView.BufferType.EDITABLE)
-                pastNote = x
-            }
+
+        val noteAtThisAddress: GeoNote? = notes?.find { x -> x.address == geoName }
+        if (noteAtThisAddress != null) {
+            noteInput.setText(noteAtThisAddress.note, TextView.BufferType.EDITABLE)
+            pastNote = noteAtThisAddress
+        } else {
+            noteInput.setText("", TextView.BufferType.EDITABLE)
         }
 
         findViewById<ImageButton>(R.id.notes_save_button).setOnClickListener {
@@ -267,6 +263,15 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
             }
             note.visibility = View.GONE
             Toast.makeText(applicationContext, "saved", Toast.LENGTH_SHORT).show()
+        }
+
+        findViewById<ImageButton>(R.id.notes_delete_button).setOnClickListener {
+            if (pastNote != null) {
+                viewModel.deleteNote(pastNote.address)
+            }
+            noteInput.setText("", TextView.BufferType.EDITABLE)
+            note.visibility = View.GONE
+            Toast.makeText(applicationContext, "deleted", Toast.LENGTH_SHORT).show()
         }
     }
 
