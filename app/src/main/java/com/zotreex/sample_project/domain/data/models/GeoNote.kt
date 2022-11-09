@@ -9,6 +9,8 @@ data class GeoNote(
     val address: String,
     val latitude: Double,
     val longtitude: Double,
-    val note: String
+    val note: String,
+    var isNotificated:Boolean = false,
+    val lastNotification:String? = null
 
 )

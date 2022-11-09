@@ -45,6 +45,14 @@ class YandexServiceRepository @Inject constructor(
 
     }
 
+    suspend fun noteisNotificated(geoNote: GeoNote,  isNotificated:Boolean) {
+        CoroutineScope(Dispatchers.IO).launch {
+            geoNote.isNotificated = isNotificated
+            geoNotesDatabase.getNoteDAO().update(geoNote)
+        }
+
+    }
+
     suspend fun deleteNote(address: String) {
         CoroutineScope(Dispatchers.IO).launch {
             geoNotesDatabase.getNoteDAO().delete(address)

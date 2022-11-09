@@ -4,11 +4,9 @@ import android.Manifest
 import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.CountDownTimer
 import android.os.Handler
 import android.os.IBinder
 import android.util.Log
-import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -20,21 +18,18 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 
-class NoteSevice: Service() {
+class NoteSevice : Service() {
 
     @Inject
-    lateinit var repository:YandexServiceRepository
+    lateinit var repository: YandexServiceRepository
 
 
-    lateinit var fusedLocationClient : FusedLocationProviderClient
+    lateinit var fusedLocationClient: FusedLocationProviderClient
     lateinit var notificationController: NotificationController
 
     var handler = Handler()
     var runnable: Runnable? = null
     var delay = 10000
-
-
-
 
 
     override fun onBind(p0: Intent?): IBinder? {
@@ -54,15 +49,14 @@ class NoteSevice: Service() {
 
         }.also { runnable = it }, delay.toLong())
 
-        this.startForeground(345, notificationController.createNotificationForService("GeoNote work").build())
+        this.startForeground(
+            345,
+            notificationController.createNotificationForService("GeoNote work").build()
+        )
     }
 
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-
-
-
-
 
 
 //        val input = intent?.getStringExtra(SyncStateContract.Constants.inputExtra)
@@ -109,7 +103,7 @@ class NoteSevice: Service() {
         return ad * 6372795
     }
 
-    fun getUserPoint(callback : (Point) -> Unit){
+    fun getUserPoint(callback: (Point) -> Unit) {
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -118,21 +112,29 @@ class NoteSevice: Service() {
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            fusedLocationClient.lastLocation.addOnCompleteListener{
+            fusedLocationClient.lastLocation.addOnCompleteListener {
                 callback.invoke(Point(it.result.latitude, it.result.longitude))
             }
         }
     }
 
-    fun userLocationCallback(userPoint:Point){
-        CoroutineScope(Dispatchers.IO).launch{
+    fun userLocationCallback(userPoint: Point) {
+        CoroutineScope(Dispatchers.IO).launch {
             repository.getAllNotes().forEach {
                 Log.i("distance", "user: ${userPoint.latitude}, ${userPoint.longitude}")
                 Log.i("distance", "note: ${it}")
-                val distance = calculateTheDistance(userPoint.latitude, userPoint.longitude, it.latitude, it.longtitude)
+                val distance = calculateTheDistance(
+                    userPoint.latitude,
+                    userPoint.longitude,
+                    it.latitude,
+                    it.longtitude
+                )
                 Log.i("distance", "userLocationCallback: ${distance}")
-                if(distance < 100){
-                    notificationController.notify(it.note)
+                if (distance < 100) {
+                    if (it.isNotificated == false) {
+                        notificationController.notify(it.note)
+                        repository.noteisNotificated(it, true)
+                    }
                 }
             }
         }

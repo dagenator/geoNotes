@@ -5,7 +5,7 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface YandexService {
-    //todo ОБЕРНУТЬ в НЕКИЙ ApiResult с перехватом try catch
+
 //    @GET("sampleDir")
 //    suspend fun getSampleList(): List<SampleItem>
 

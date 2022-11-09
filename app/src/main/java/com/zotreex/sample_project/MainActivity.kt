@@ -63,6 +63,11 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
         }
     }
 
+    val geoNotesObserver: Observer<List<GeoNote>> = Observer<List<GeoNote>>{
+
+        drawNotesOnMap(it)
+    }
+
 
     val permissionsUtils = PermissionsUtils()
 
@@ -81,6 +86,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
 
         mapView = findViewById<MapView>(R.id.mapview)
         viewModel.geocodeLiveData.observe(this, geocodeObserver)
+        viewModel.geoNotes.observe(this, geoNotesObserver)
 
         setMap()
 
@@ -164,7 +170,28 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
                 Point(lat, long),
                 ImageProvider.fromResource(this, R.drawable.ic_baseline_arrow_drop_down_circle_24)
             )
+            viewModel.geoNotes.value?.let{list->
+                list.forEach { geo->
+                    it.map.mapObjects.addPlacemark(
+                        Point(geo.latitude, geo.longtitude),
+                        ImageProvider.fromResource(this, R.drawable.ic_baseline_edit_location_24)
+                    )
+                }
+            }
 
+        }
+        drawNotesOnMap(viewModel.geoNotes.value)
+    }
+
+    fun drawNotesOnMap(geonotes: List<GeoNote>?){
+        mapView.let {
+            geonotes?.forEach { geo->
+                Log.i("Note", "drawNotesOnMap: ${geo.address} ")
+                it.map.mapObjects.addPlacemark(
+                    Point(geo.latitude, geo.longtitude),
+                    ImageProvider.fromResource(this, R.drawable.ic_baseline_edit_location_24)
+                )
+            }
         }
     }
 
@@ -181,6 +208,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
             userLocationLayer!!.setObjectListener(this)
             it.map.addInputListener(this)
         }
+
     }
 
 
