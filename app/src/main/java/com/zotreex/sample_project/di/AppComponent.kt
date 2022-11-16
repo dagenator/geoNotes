@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.zotreex.sample_project.MainActivity
 import com.zotreex.sample_project.NoteSevice
+import com.zotreex.sample_project.NotesActivity
 import com.zotreex.sample_project.domain.api.YandexService
 import com.zotreex.sample_project.domain.data.bd.GeoNotesDatabase
 import dagger.Component
@@ -17,6 +18,7 @@ import retrofit2.create
 
 @Component(modules = [AppModule::class])
 interface AppComponent {
+    fun inject(notesActivity: NotesActivity)
     fun inject(mainActivity: MainActivity)
     fun inject(noteSevice: NoteSevice)
 

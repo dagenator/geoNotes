@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
-import android.graphics.PointF
 import android.location.Location
 import android.os.Bundle
 import android.util.Log
@@ -64,13 +63,10 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
     }
 
     val geoNotesObserver: Observer<List<GeoNote>> = Observer<List<GeoNote>>{
-
         drawNotesOnMap(it)
     }
 
-
     val permissionsUtils = PermissionsUtils()
-
 
     private var currentLocation: Location? = null
 
@@ -96,6 +92,10 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
         val intent = Intent(this, NoteSevice::class.java) // Build the intent for the service
         applicationContext.startForegroundService(intent)
         viewModel.getNotes()
+
+        findViewById<ImageButton>(R.id.open_note_list_button).setOnClickListener{
+            openNotesList()
+        }
     }
 
     private fun subscribeLocationUpdate() {
@@ -114,6 +114,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
     }
 
 
+
     override fun onStop() {
         mapView.onStop()
         MapKitFactory.getInstance().onStop()
@@ -127,32 +128,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
     }
 
     override fun onObjectAdded(userLocationView: UserLocationView) {
-//        userLocationLayer!!.setAnchor(
-//            PointF((mapView.width * 0.5).toFloat(), (mapView.height * 0.5).toFloat()),
-//            PointF((mapView.width * 0.5).toFloat(), (mapView.height * 0.83).toFloat())
-//        )
-        userLocationView.arrow.setIcon(
-            ImageProvider.fromResource(
-                this, android.R.drawable.arrow_down_float
-            )
-        )
-        val pinIcon = userLocationView.pin.useCompositeIcon()
-        pinIcon.setIcon(
-            "icon",
-            ImageProvider.fromResource(this, android.R.drawable.btn_plus),
-            IconStyle().setAnchor(PointF(0f, 0f))
-                .setRotationType(RotationType.ROTATE)
-                .setZIndex(0f)
-                .setScale(1f)
-        )
-        pinIcon.setIcon(
-            "pin",
-            ImageProvider.fromResource(this, android.R.drawable.ic_menu_search),
-            IconStyle().setAnchor(PointF(0f, 0f))
-                .setRotationType(RotationType.ROTATE)
-                .setZIndex(1f)
-                .setScale(0.5f)
-        )
+
         userLocationView.accuracyCircle.fillColor = Color.BLUE and -0x66000001
     }
 
@@ -161,11 +137,11 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
         setCameraPosition(latitude, longitude)
     }
 
-    fun setCameraPosition(lat: Double, long: Double) {
+    fun setCameraPosition(lat: Double, long: Double, zoom: Float = 14F) {
         Log.i("locationArrow", "setCameraPosition: ")
         mapView.let {
             it.map.isRotateGesturesEnabled = true
-            it.map.move(CameraPosition(Point(lat, long), 14F, 0F, 0F))
+            it.map.move(CameraPosition(Point(lat, long), zoom, 0F, 0F))
             it.map.mapObjects.addPlacemark(
                 Point(lat, long),
                 ImageProvider.fromResource(this, R.drawable.ic_baseline_arrow_drop_down_circle_24)
@@ -186,7 +162,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
     fun drawNotesOnMap(geonotes: List<GeoNote>?){
         mapView.let {
             geonotes?.forEach { geo->
-                Log.i("Note", "drawNotesOnMap: ${geo.address} ")
+                Log.i("NoteTag", "drawNotesOnMap: ${geo.address} ")
                 it.map.mapObjects.addPlacemark(
                     Point(geo.latitude, geo.longtitude),
                     ImageProvider.fromResource(this, R.drawable.ic_baseline_edit_location_24)
@@ -195,7 +171,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
         }
     }
 
-    fun setMap(lat: Double = 0.0, long: Double = 0.0) {
+    fun setMap() {
         Log.i("locationArrow", "setMap: ")
         mapView.let {
             it.map.isRotateGesturesEnabled = false
@@ -301,12 +277,10 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
             note.visibility = View.GONE
             Toast.makeText(applicationContext, "deleted", Toast.LENGTH_SHORT).show()
         }
-    }
 
-    companion object {
-        val PERMISSIONS_REQUEST_FINE_LOCATION = 1
-        val PERMISSIONS_REQUEST_COARSE_LOCATION = 2
-        val PERMISSIONS_REQUEST_ACCESS_BACKGROUND_LOCATION = 3
+        findViewById<ImageButton>(R.id.notes_exit_button).setOnClickListener {
+            note.visibility = View.GONE
+        }
     }
 
     override fun onMapTap(p0: Map, p1: Point) {
@@ -319,5 +293,34 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
         TODO("Not yet implemented")
     }
 
+    private fun openNotesList(){
+        val intent = Intent(this, NotesActivity::class.java)
+        startActivityForResult(intent, NotesActivity.NOTES_LIST)
+    }
 
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (data == null) {
+            return
+        }
+        val address = data.getStringExtra(NotesActivity.ADDRESS_ARG)
+        address?.let { findNoteOnMap(it) }
+
+    }
+
+    private fun findNoteOnMap(address: String){
+        viewModel.geoNotes.value?.let { it ->
+            if(it.isEmpty()) return
+
+            it.filter { x-> x.address == address }.forEach {note->
+                setCameraPosition(note.latitude, note.longtitude, 17F)
+            }
+        }
+    }
+
+    companion object {
+        val PERMISSIONS_REQUEST_FINE_LOCATION = 1
+        val PERMISSIONS_REQUEST_COARSE_LOCATION = 2
+        val PERMISSIONS_REQUEST_ACCESS_BACKGROUND_LOCATION = 3
+    }
 }
