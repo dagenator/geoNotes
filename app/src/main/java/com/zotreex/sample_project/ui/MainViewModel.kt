@@ -7,14 +7,13 @@ import com.zotreex.sample_project.domain.data.models.GeoNote
 import com.zotreex.sample_project.domain.data.models.Geocode
 import com.zotreex.sample_project.domain.data.models.Resource
 import com.zotreex.sample_project.domain.repository.YandexServiceRepository
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class MainViewModel @Inject constructor(
-    val yandexServiceRepository: YandexServiceRepository
+    val yandexServiceRepository: YandexServiceRepository,
 ) : ViewModel() {
 
     var geocodeLiveData = MutableLiveData<Resource<Geocode>>()
@@ -31,30 +30,41 @@ class MainViewModel @Inject constructor(
 
     fun getNotes() {
         viewModelScope.launch {
-            withContext(Dispatchers.IO){
-                geoNotes.postValue( yandexServiceRepository.getAllNotes())
+            withContext(Dispatchers.IO) {
+                geoNotes.postValue(yandexServiceRepository.getAllNotes())
             }
         }
     }
 
-    fun insertNote(address: String, lat: Double, long: Double, note: String){
+    fun insertNote(address: String, lat: Double, long: Double, note: String) {
         viewModelScope.launch {
             yandexServiceRepository.saveNewNote(address, lat, long, note)
         }
     }
 
-    fun updateNote(address: String, lat: Double, long: Double, note: String){
+    fun updateNote(address: String, lat: Double, long: Double, note: String) {
         viewModelScope.launch {
             yandexServiceRepository.updateNewNote(address, lat, long, note)
         }
     }
 
-    fun deleteNote(address: String){
+    fun updateNote(geoNote: GeoNote) {
+        viewModelScope.launch {
+            yandexServiceRepository.updateNote(geoNote)
+        }
+    }
+
+    fun deleteNote(address: String) {
         viewModelScope.launch {
             yandexServiceRepository.deleteNote(address)
         }
     }
 
+    fun insertNote(geoNote: GeoNote) {
+        viewModelScope.launch {
+            yandexServiceRepository.saveNewNote(geoNote)
+        }
+    }
 
 
 }

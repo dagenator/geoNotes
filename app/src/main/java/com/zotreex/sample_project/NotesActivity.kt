@@ -19,9 +19,9 @@ class NotesActivity : AppCompatActivity(R.layout.fragment_notes_list) {
     @Inject
     lateinit var mainViewModelFactory: MainViewModelFactory
 
-    private val viewModel: MainViewModel by viewModels<MainViewModel> { mainViewModelFactory }
+    private val viewModel: MainViewModel by viewModels { mainViewModelFactory }
 
-    val geoNotesObserver: Observer<List<GeoNote>> = Observer<List<GeoNote>> {
+    private val geoNotesObserver: Observer<List<GeoNote>> = Observer<List<GeoNote>> {
         setRecycle(it)
     }
 
@@ -34,14 +34,14 @@ class NotesActivity : AppCompatActivity(R.layout.fragment_notes_list) {
         viewModel.getNotes()
     }
 
-    fun onFinish(address: String) {
+    private fun onFinish(address: String) {
         val intent = Intent()
         intent.putExtra(ADDRESS_ARG, address)
         setResult(RESULT_OK, intent)
         finish()
     }
 
-    private fun setRecycle(list: List<GeoNote>){
+    private fun setRecycle(list: List<GeoNote>) {
         val adapter = NotesAdapter(list.toTypedArray()) { x -> onFinish(x) }
         val recycler = findViewById<RecyclerView>(R.id.list)
         recycler.adapter = adapter
