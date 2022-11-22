@@ -23,18 +23,16 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.layers.ObjectEvent
-import com.yandex.mapkit.map.CameraPosition
-import com.yandex.mapkit.map.InputListener
+import com.yandex.mapkit.map.*
 import com.yandex.mapkit.map.Map
-import com.yandex.mapkit.map.MapObjectTapListener
 import com.yandex.mapkit.mapview.MapView
 import com.yandex.mapkit.user_location.UserLocationLayer
 import com.yandex.mapkit.user_location.UserLocationObjectListener
 import com.yandex.mapkit.user_location.UserLocationView
-import com.yandex.runtime.image.ImageProvider
 import com.yandex.runtime.ui_view.ViewProvider
 import com.zotreex.sample_project.di.MainViewModelFactory
 import com.zotreex.sample_project.domain.data.models.GeoNote
@@ -154,13 +152,12 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
         Log.i("locationArrow", "setCameraPosition: ")
         mapView.let {
             it.map.isRotateGesturesEnabled = true
-            it.map.move(CameraPosition(Point(lat, long), zoom, 0F, 0F))
-            it.map.mapObjects.addPlacemark(
-                Point(lat, long),
-                ImageProvider.fromResource(this, R.drawable.ic_baseline_arrow_drop_down_circle_24)
+            it.map.move(
+                CameraPosition(Point(lat, long), zoom, 0F, 0F),
+                Animation(Animation.Type.SMOOTH, 0.5f),
+                null
             )
         }
-        drawNotesOnMap(viewModel.geoNotes.value.orEmpty())
     }
 
     private fun drawNotesOnMap(geoNotes: List<GeoNote>) {
@@ -235,6 +232,12 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
         val noteInput = findViewById<EditText>(R.id.notes_edit_text)
         noteInput.setText(geoNote.note, TextView.BufferType.EDITABLE)
 
+        val endOnEditAction: (String) -> Unit = { toastNotificationText ->
+            hideKeyboard()
+            note.visibility = View.GONE
+            Toast.makeText(applicationContext, toastNotificationText, Toast.LENGTH_SHORT).show()
+            viewModel.getNotes()
+        }
         findViewById<ImageButton>(R.id.notes_save_button).setOnClickListener {
             geoNote.note = noteInput.text.toString()
             if (geoNote.id == null) {
@@ -242,35 +245,22 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
             } else {
                 viewModel.updateNote(geoNote)
             }
-            hideKeyboard()
-            note.visibility = View.GONE
-            Toast.makeText(applicationContext, "saved", Toast.LENGTH_SHORT).show()
-            viewModel.getNotes()
+            endOnEditAction("saved")
         }
         findViewById<ImageButton>(R.id.notes_delete_button).setOnClickListener {
-            hideKeyboard()
-            note.visibility = View.GONE
             viewModel.deleteNote(geoNote.address)
-            Toast.makeText(applicationContext, "deleted", Toast.LENGTH_SHORT).show()
-
-            viewModel.getNotes()
+            endOnEditAction("deleted")
         }
     }
 
     private fun drawNote(geocode: Geocode) {
         viewModel.getNotes()
         val notes = viewModel.geoNotes.value
-        val geoName =
-            geocode.response.geoObjectCollection.featureMember[0].geoObject.metaDataProperty.geocoderMetaData.text
+        val geoObject = geocode.response.geoObjectCollection.featureMember[0].geoObject
+        val geoName = geoObject.metaDataProperty.geocoderMetaData.text
         val noteAtThisAddress: GeoNote? = notes?.find { x -> x.address == geoName }
-        if (noteAtThisAddress != null) {
-            saveOrEdit(noteAtThisAddress)
-        } else {
-            val pos =
-                geocode.response.geoObjectCollection.featureMember[0].geoObject.point.pos.split(" ")
-                    .map(String::toDouble)
-            saveOrEdit(GeoNote(null, geoName, pos[1], pos[0], ""))
-        }
+        val pos = geoObject.point.pos.split(" ").map(String::toDouble)
+        saveOrEdit(noteAtThisAddress ?: GeoNote(null, geoName, pos[1], pos[0], ""))
     }
 
     fun Fragment.hideKeyboard() {
@@ -293,7 +283,6 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
     }
 
     override fun onMapLongTap(p0: Map, p1: Point) {
-        TODO("Not yet implemented")
     }
 
     private fun openNotesList() {
@@ -315,8 +304,8 @@ class MainActivity : AppCompatActivity(R.layout.activity_main), UserLocationObje
         viewModel.geoNotes.value?.let { it ->
             if (it.isEmpty()) return
 
-            it.filter { x -> x.address == address }.forEach { note ->
-                setCameraPosition(note.latitude, note.longtitude, 17F)
+            it.first { x -> x.address == address }.let { note ->
+                setCameraPosition(note.latitude, note.longtitude, 14f)
             }
         }
     }

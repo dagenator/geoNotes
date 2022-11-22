@@ -113,12 +113,12 @@ class NoteSevice : Service() {
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             fusedLocationClient.lastLocation.addOnCompleteListener {
-                callback.invoke(Point(it.result.latitude, it.result.longitude))
+                callback(Point(it.result.latitude, it.result.longitude))
             }
         }
     }
 
-    fun userLocationCallback(userPoint: Point) {
+    private fun userLocationCallback(userPoint: Point) {
         CoroutineScope(Dispatchers.IO).launch {
             repository.getAllNotes().forEach {
                 Log.i("distance", "user: ${userPoint.latitude}, ${userPoint.longitude}")
@@ -131,7 +131,7 @@ class NoteSevice : Service() {
                 )
                 Log.i("distance", "userLocationCallback: ${distance}")
                 if (distance < 100) {
-                    if (it.isNotificated == false) {
+                    if (!it.isNotificated) {
                         notificationController.notify(it.note)
                         repository.noteisNotificated(it, true)
                     }
